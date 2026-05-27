@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meow Match</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --purple:#7F77DD;--purple-dark:#534AB7;--purple-light:#EEEDFE;
+    --pink:#D4537E;--amber:#FAC775;--teal:#1D9E75;
+    --bg:#0e0b1a;--card:#1a1530;--card2:#221d3a;
+    --text:#f0eeff;--muted:#9990cc;--border:#2e2860;
+  }
+  body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+  .screen{display:none;min-height:100vh;padding:1.5rem 1rem;flex-direction:column;align-items:center;}
+  .screen.active{display:flex;}
+  h1{font-family:'Fredoka One',cursive;font-size:2.8rem;color:var(--purple);text-align:center;line-height:1.1;}
+  h2{font-family:'Fredoka One',cursive;font-size:1.8rem;color:var(--text);text-align:center;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:1.25rem;margin-bottom:1rem;width:100%;max-width:420px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px 24px;border-radius:50px;border:none;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:700;cursor:pointer;width:100%;max-width:420px;margin-bottom:10px;transition:transform 0.1s;}
+  .btn:active{transform:scale(0.97);}
+  .btn.purple{background:var(--purple);color:white;}
+  .btn.purple:hover{background:var(--purple-dark);}
+  .btn.red{background:#E24B4A;color:white;}
+  .btn.outline{background:transparent;color:var(--text);border:1px solid var(--border);}
+  .btn.outline:hover{background:var(--card2);}
+  .btn.teal{background:var(--teal);color:white;}
+  input[type=text]{width:100%;padding:12px 16px;border-radius:50px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-family:'Nunito',sans-serif;font-size:1rem;margin-bottom:12px;outline:none;}
+  input[type=text]:focus{border-color:var(--purple);}
+  .cam-stage{position:relative;width:100%;max-width:420px;border-radius:20px;overflow:hidden;background:#111;aspect-ratio:4/3;margin-bottom:1rem;border:2px solid var(--border);}
+  .cam-stage video{width:100%;height:100%;object-fit:cover;display:block;transform:scaleX(-1);}
+  .cam-stage canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+  .meter-wrap{margin-bottom:12px;}
+  .meter-label{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:5px;}
+  .meter-bar{height:10px;background:var(--card2);border-radius:99px;overflow:hidden;}
+  .meter-fill{height:100%;border-radius:99px;width:0%;transition:width 0.08s;}
+  .target-box{text-align:center;padding:1.25rem;background:var(--purple-dark);border-radius:16px;margin-bottom:1rem;width:100%;max-width:420px;position:relative;}
+  .target-meow{font-family:'Fredoka One',cursive;font-size:2.4rem;color:white;letter-spacing:3px;}
+  .target-hint{font-size:13px;color:#ccc8ff;margin-top:6px;}
+  .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;width:100%;max-width:420px;}
+  .round-badge{background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:50px;padding:5px 14px;font-size:13px;font-weight:700;}
+  .score-top{font-family:'Fredoka One',cursive;font-size:1.3rem;color:var(--amber);}
+  .status-msg{text-align:center;font-size:14px;color:var(--muted);min-height:22px;margin:8px 0;}
+  .big-score{font-family:'Fredoka One',cursive;font-size:4rem;color:var(--amber);text-align:center;}
+  .lb-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .lb-row:last-child{border-bottom:none;}
+  .lb-rank{font-size:18px;width:28px;text-align:center;}
+  .lb-name{flex:1;font-size:15px;}
+  .lb-score{font-family:'Fredoka One',cursive;font-size:1.1rem;color:var(--amber);}
+  .score-pop{position:absolute;top:8px;right:14px;font-family:'Fredoka One',cursive;font-size:1.5rem;color:var(--amber);opacity:0;pointer-events:none;}
+  .score-pop.show{animation:popUp 1.4s ease forwards;}
+  @keyframes popUp{0%{opacity:1;transform:translateY(0) scale(1);}60%{opacity:1;transform:translateY(-28px) scale(1.2);}100%{opacity:0;transform:translateY(-44px) scale(0.9);}}
+  .warn-box{background:#2a1010;border:1px solid #E24B4A;border-radius:12px;padding:12px 16px;font-size:14px;color:#f09595;text-align:center;margin-bottom:1rem;width:100%;max-width:420px;}
+  .subtitle{font-size:14px;color:var(--muted);text-align:center;margin-bottom:1.5rem;line-height:1.6;}
+  .ear-selector{display:flex;gap:10px;justify-content:center;margin-bottom:14px;flex-wrap:wrap;}
+  .ear-opt{background:var(--card2);border:2px solid var(--border);border-radius:50px;padding:7px 16px;font-size:13px;color:var(--muted);cursor:pointer;font-family:'Nunito',sans-serif;font-weight:700;}
+  .ear-opt.active{border-color:var(--purple);color:var(--purple);background:#1e1a40;}
+  .paw{font-size:3rem;margin-bottom:0.5rem;}
+</style>
+</head>
+<body>
+
+<div id="s-home" class="screen active">
+  <div style="margin-top:1.5rem;" class="paw">🐾</div>
+  <h1>Meow Match</h1>
+  <p class="subtitle">Meow into your mic, match the sound,<br>earn 50–100 pts &amp; top the leaderboard!</p>
+  <div class="card">
+    <input type="text" id="pname" placeholder="Your name..." maxlength="20" />
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px;text-align:center;">Pick your cat ear style:</p>
+    <div class="ear-selector" id="ear-selector">
+      <button class="ear-opt active" data-ear="0">💜 Purple</button>
+      <button class="ear-opt" data-ear="1">🩷 Pink</button>
+      <button class="ear-opt" data-ear="2">🧡 Orange</button>
+      <button class="ear-opt" data-ear="3">💚 Teal</button>
+      <button class="ear-opt" data-ear="4">🎲 Random!</button>
+    </div>
+    <button class="btn purple" onclick="initGame()">▶ Start game</button>
+    <button class="btn outline" onclick="openLeaderboard()">🏆 Leaderboard</button>
+  </div>
+</div>
+
+<div id="s-cam" class="screen">
+  <h2 style="margin:1.5rem 0 0.5rem;">Enable camera</h2>
+  <p class="subtitle">Your cat ears &amp; whiskers will appear live on your face!</p>
+  <div class="cam-stage">
+    <video id="vid" autoplay muted playsinline></video>
+    <canvas id="earcanvas"></canvas>
+  </div>
+  <div id="cam-warn" class="warn-box" style="display:none;">Camera denied — allow it in browser settings then try again.</div>
+  <button class="btn purple" onclick="requestCam()">📷 Allow camera &amp; play</button>
+  <button class="btn outline" onclick="skipCam()">Skip camera, mic only</button>
+</div>
+
+<div id="s-game" class="screen">
+  <div class="top-row">
+    <span class="round-badge" id="rbadge">Round 1 / 5</span>
+    <span class="score-top" id="stop">0 pts</span>
+  </div>
+  <div class="cam-stage" id="game-cam-wrap">
+    <video id="vid2" autoplay muted playsinline></video>
+    <canvas id="earcanvas2"></canvas>
+  </div>
+  <div class="target-box">
+    <div class="target-meow" id="tmeow">MEOW</div>
+    <div class="target-hint" id="thint">Normal cat meow</div>
+    <div class="score-pop" id="score-pop"></div>
+  </div>
+  <div class="card">
+    <div class="meter-wrap">
+      <div class="meter-label"><span>Volume</span><span id="vval">0%</span></div>
+      <div class="meter-bar"><div class="meter-fill" id="vfill" style="background:var(--purple);"></div></div>
+    </div>
+    <div class="meter-wrap">
+      <div class="meter-label"><span>Pitch</span><span id="pval">—</span></div>
+      <div class="meter-bar"><div class="meter-fill" id="pfill" style="background:var(--teal);"></div></div>
+    </div>
+    <div class="status-msg" id="smsg">Press the button and meow!</div>
+    <button class="btn purple" id="micbtn" onclick="toggleMic()">🎤 Hold to meow</button>
+  </div>
+</div>
+
+<div id="s-result" class="screen">
+  <div style="margin-top:1.5rem;font-size:3.5rem;text-align:center;" id="res-emoji">🐱</div>
+  <h2 style="margin:0.5rem 0 1rem;" id="res-title">Nice meow!</h2>
+  <div class="card" style="text-align:center;padding:1.5rem;">
+    <div style="font-size:14px;color:var(--muted);">Round score</div>
+    <div class="big-score" id="res-score">0</div>
+    <div style="font-size:13px;color:var(--muted);">points</div>
+  </div>
+  <div class="card">
+    <div class="meter-wrap">
+      <div class="meter-label"><span>Volume match</span><span id="rv">0%</span></div>
+      <div class="meter-bar"><div class="meter-fill" id="rvf" style="background:var(--purple);"></div></div>
+    </div>
+    <div class="meter-wrap">
+      <div class="meter-label"><span>Pitch match</span><span id="rp">0%</span></div>
+      <div class="meter-bar"><div class="meter-fill" id="rpf" style="background:var(--teal);"></div></div>
+    </div>
+  </div>
+  <button class="btn purple" id="nextbtn" onclick="nextRound()">Next meow ▶</button>
+  <button class="btn outline" onclick="showScreen('s-home')">Quit</button>
+</div>
+
+<div id="s-final" class="screen">
+  <div style="margin-top:1.5rem;font-size:3.5rem;">🏆</div>
+  <h1 style="margin:0.5rem 0;">Game over!</h1>
+  <p class="subtitle" id="final-sub">Great job!</p>
+  <div class="card" style="text-align:center;padding:2rem;">
+    <div style="font-size:14px;color:var(--muted);">Total score</div>
+    <div class="big-score" id="fscore">0</div>
+    <div style="font-size:13px;color:var(--muted);">out of 500</div>
+  </div>
+  <button class="btn teal" onclick="saveScore()">🏆 Save &amp; see leaderboard</button>
+  <button class="btn purple" onclick="restartGame()">↺ Play again</button>
+  <button class="btn outline" onclick="showScreen('s-home')">Home</button>
+</div>
+
+<div id="s-lb" class="screen">
+  <h2 style="margin:1.5rem 0 0.5rem;">Leaderboard</h2>
+  <p class="subtitle">Top cat meowers worldwide 🐾</p>
+  <div class="card" id="lbcontent" style="max-width:420px;"></div>
+  <button class="btn outline" onclick="showScreen('s-home')">← Back</button>
+</div>
+
+<script>
+const ROUNDS=[
+  {text:"meow",hint:"Soft gentle meow",targetVol:40,targetPitch:300},
+  {text:"MEOW!",hint:"Loud demanding meow",targetVol:80,targetPitch:400},
+  {text:"mrrrow~",hint:"Long drawn-out meow",targetVol:55,targetPitch:250},
+  {text:"mew",hint:"Tiny kitten mew",targetVol:25,targetPitch:500},
+  {text:"MRRREOW!",hint:"Angry yowl",targetVol:90,targetPitch:350},
+];
+const EAR_STYLES=[
+  {outer:'#7F77DD',inner:'#FAC775'},
+  {outer:'#D4537E',inner:'#ffd6e7'},
+  {outer:'#E2743A',inner:'#FAC775'},
+  {outer:'#1D9E75',inner:'#9FE1CB'},
+];
+
+let camStream=null,currentRound=0,totalScore=0,playerName="Player";
+let audioCtx,analyser,micStream,animId,recording=false;
+let recVols=[],recPitches=[];
+let earStyle=EAR_STYLES[0],camEnabled=false,selectedEarIdx=0;
+let earAnimId=null,tailAngle=0,tailDir=1,blinkTimer=0,catBlink=false;
+
+document.querySelectorAll('.ear-opt').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ear-opt').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedEarIdx=parseInt(btn.dataset.ear);
+  });
+});
+
+function resolveEar(){
+  if(selectedEarIdx===4)return EAR_STYLES[Math.floor(Math.random()*EAR_STYLES.length)];
+  return EAR_STYLES[selectedEarIdx];
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function initGame(){
+  playerName=document.getElementById('pname').value.trim()||"Player";
+  earStyle=resolveEar();
+  currentRound=0;totalScore=0;
+  showScreen('s-cam');
+  if(camStream){attachCam('vid');startEarLoop('earcanvas','vid');}
+}
+
+async function requestCam(){
+  document.getElementById('cam-warn').style.display='none';
+  try{
+    camStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+    camEnabled=true;
+    attachCam('vid');startEarLoop('earcanvas','vid');
+    setTimeout(goToGame,1000);
+  }catch(e){
+    document.getElementById('cam-warn').style.display='block';
+  }
+}
+
+function skipCam(){
+  camEnabled=false;
+  document.getElementById('game-cam-wrap').style.display='none';
+  goToGame();
+}
+
+function goToGame(){
+  loadRound();
+  if(camEnabled){attachCam('vid2');startEarLoop('earcanvas2','vid2');}
+  showScreen('s-game');
+}
+
+function attachCam(vidId){
+  const v=document.getElementById(vidId);
+  if(v&&camStream)v.srcObject=camStream;
+}
+
+function startEarLoop(canvasId,vidId){
+  cancelAnimationFrame(earAnimId);
+  function loop(){
+    earAnimId=requestAnimationFrame(loop);
+    const canvas=document.getElementById(canvasId);
+    const vid=document.getElementById(vidId);
+    if(!canvas||!vid)return;
+    canvas.width=vid.videoWidth||canvas.offsetWidth||420;
+    canvas.height=vid.videoHeight||canvas.offsetHeight||315;
+    const ctx=canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawOverlay(ctx,canvas.width,canvas.height);
+  }
+  loop();
+}
+
+function drawOverlay(ctx,W,H){
+  tailAngle+=0.04*tailDir;
+  if(tailAngle>0.5||tailAngle<-0.5)tailDir*=-1;
+  blinkTimer++;
+  if(blinkTimer>100)catBlink=true;
+  if(blinkTimer>106){catBlink=false;blinkTimer=0;}
+
+  const earW=W*0.14,earH=H*0.21;
+  const lx=W*0.27,rx=W*0.73,eTop=H*0.015;
+
+  function drawEar(cx){
+    ctx.fillStyle=earStyle.outer;
+    ctx.beginPath();ctx.moveTo(cx-earW/2,eTop+earH);ctx.lineTo(cx,eTop);ctx.lineTo(cx+earW/2,eTop+earH);ctx.closePath();ctx.fill();
+    ctx.fillStyle=earStyle.inner;
+    ctx.beginPath();ctx.moveTo(cx-earW/3.5,eTop+earH*0.82);ctx.lineTo(cx,eTop+earH*0.2);ctx.lineTo(cx+earW/3.5,eTop+earH*0.82);ctx.closePath();ctx.fill();
+  }
+  drawEar(lx);drawEar(rx);
+
+  const nx=W*0.5,ny=H*0.63,wL=W*0.17;
+  ctx.strokeStyle='rgba(230,220,255,0.9)';
+  ctx.lineWidth=Math.max(1.5,W*0.003);
+  ctx.lineCap='round';
+  [[-wL,-H*0.018,-wL*0.28,0],[-wL,H*0.018,-wL*0.28,H*0.012],[-wL*0.82,H*0.05,-wL*0.24,H*0.022],
+   [wL,-H*0.018,wL*0.28,0],[wL,H*0.018,wL*0.28,H*0.012],[wL*0.82,H*0.05,wL*0.24,H*0.022]]
+  .forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(nx+x1,ny+y1);ctx.lineTo(nx+x2,ny+y2);ctx.stroke();});
+
+  ctx.fillStyle='#D4537E';
+  ctx.beginPath();ctx.moveTo(nx,ny-H*0.012);ctx.lineTo(nx-W*0.021,ny+H*0.009);ctx.lineTo(nx+W*0.021,ny+H*0.009);ctx.closePath();ctx.fill();
+
+  ctx.fillStyle=earStyle.outer;
+  ctx.globalAlpha=0.3;
+  ctx.beginPath();ctx.ellipse(nx-W*0.13,ny+H*0.012,W*0.042,H*0.026,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(nx+W*0.13,ny+H*0.012,W*0.042,H*0.026,0,0,Math.PI*2);ctx.fill();
+  ctx.globalAlpha=1;
+}
+
+function loadRound(){
+  const r=ROUNDS[currentRound];
+  document.getElementById('rbadge').textContent=`Round ${currentRound+1} / ${ROUNDS.length}`;
+  document.getElementById('stop').textContent=`${totalScore} pts`;
+  document.getElementById('tmeow').textContent=r.text;
+  document.getElementById('thint').textContent=r.hint;
+  document.getElementById('smsg').textContent='Press the button and meow!';
+  ['vfill','pfill'].forEach(id=>document.getElementById(id).style.width='0%');
+  document.getElementById('vval').textContent='0%';
+  document.getElementById('pval').textContent='—';
+  const btn=document.getElementById('micbtn');
+  btn.className='btn purple';btn.textContent='🎤 Hold to meow';
+  recording=false;recVols=[];recPitches=[];
+  hidePop();
+}
+
+async function toggleMic(){
+  if(!recording){
+    try{
+      micStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+      analyser=audioCtx.createAnalyser();analyser.fftSize=2048;
+      audioCtx.createMediaStreamSource(micStream).connect(analyser);
+      recording=true;recVols=[];recPitches=[];
+      const btn=document.getElementById('micbtn');
+      btn.className='btn red';btn.textContent='🔴 Recording... tap to stop';
+      document.getElementById('smsg').textContent='Meow now!';
+      analyzeMic();
+    }catch(e){
+      document.getElementById('smsg').textContent='Mic access denied — please allow microphone.';
+    }
+  }else{stopAndScore();}
+}
+
+function analyzeMic(){
+  if(!recording)return;
+  const buf=new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(buf);
+  let sum=0;for(let i=0;i<buf.length;i++)sum+=Math.abs(buf[i]-128);
+  const vol=Math.min(100,Math.round((sum/buf.length)*5));
+  recVols.push(vol);
+  const fb=new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(fb);
+  const pitch=estimatePitch(fb,audioCtx.sampleRate);
+  if(pitch>0)recPitches.push(pitch);
+  document.getElementById('vfill').style.width=vol+'%';
+  document.getElementById('vval').textContent=vol+'%';
+  if(pitch>0){
+    const pp=Math.round(Math.min(100,(pitch/800)*100));
+    document.getElementById('pfill').style.width=pp+'%';
+    document.getElementById('pval').textContent=Math.round(pitch)+' Hz';
+  }
+  animId=requestAnimationFrame(analyzeMic);
+}
+
+function estimatePitch(buf,sr){
+  let best=-1,bestC=0,lastC=1,found=false;
+  for(let o=20;o<buf.length/2;o++){
+    let c=0;for(let i=0;i<buf.length/2;i++)c+=Math.abs(buf[i]-buf[i+o]);
+    c=1-(c/(buf.length/2));
+    if(c>0.9&&c>lastC){found=true;if(c>bestC){bestC=c;best=o;}}
+    else if(found)break;
+    lastC=c;
+  }
+  return best>-1?sr/best:-1;
+}
+
+function stopAndScore(){
+  recording=false;
+  cancelAnimationFrame(animId);
+  if(micStream)micStream.getTracks().forEach(t=>t.stop());
+  if(audioCtx)audioCtx.close();
+  const r=ROUNDS[currentRound];
+  const avgVol=recVols.length?Math.round(recVols.reduce((a,b)=>a+b,0)/recVols.length):0;
+  const avgPitch=recPitches.length?recPitches.reduce((a,b)=>a+b,0)/recPitches.length:0;
+  const volMatch=Math.max(0,Math.round(100-Math.abs(avgVol-r.targetVol)));
+  const pitchMatch=avgPitch>0?Math.max(0,Math.round(100-Math.abs(avgPitch-r.targetPitch)/r.targetPitch*100)):0;
+  const raw=(volMatch*0.5+pitchMatch*0.5)/100;
+  const score=Math.round(50+raw*50);
+  totalScore+=score;
+  showPop('+'+score);
+  document.getElementById('res-score').textContent=score;
+  document.getElementById('rv').textContent=volMatch+'%';document.getElementById('rvf').style.width=volMatch+'%';
+  document.getElementById('rp').textContent=pitchMatch+'%';document.getElementById('rpf').style.width=pitchMatch+'%';
+  let emoji='🐱',title='Nice meow!';
+  if(score>=90){emoji='😻';title='Purrfect!';}
+  else if(score>=75){emoji='🐈';title='Good meow!';}
+  else if(score<60){emoji='😿';title='Keep practicing!';}
+  document.getElementById('res-emoji').textContent=emoji;
+  document.getElementById('res-title').textContent=title;
+  const isLast=currentRound===ROUNDS.length-1;
+  document.getElementById('nextbtn').textContent=isLast?'🏆 See final score':'Next meow ▶';
+  setTimeout(()=>showScreen('s-result'),700);
+}
+
+function showPop(txt){
+  const el=document.getElementById('score-pop');
+  el.textContent=txt;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
+}
+function hidePop(){const el=document.getElementById('score-pop');el.classList.remove('show');}
+
+function nextRound(){
+  currentRound++;
+  if(currentRound>=ROUNDS.length){
+    document.getElementById('fscore').textContent=totalScore;
+    const msg=totalScore>=450?'You are the cat royalty! 👑':totalScore>=350?'Solid meowing! 🐈':totalScore>=250?'Not bad, keep practicing!':'Practice makes purrfect! 😿';
+    document.getElementById('final-sub').textContent=`${playerName} — ${msg}`;
+    showScreen('s-final');
+  }else{
+    loadRound();
+    if(camEnabled){attachCam('vid2');startEarLoop('earcanvas2','vid2');}
+    showScreen('s-game');
+  }
+}
+
+function restartGame(){
+  earStyle=resolveEar();currentRound=0;totalScore=0;
+  loadRound();
+  if(camEnabled){attachCam('vid2');startEarLoop('earcanvas2','vid2');}
+  showScreen('s-game');
+}
+
+async function saveScore(){
+  try{
+    let sc=[];
+    try{const r=await window.storage.get('meow-lb-v2',true);if(r)sc=JSON.parse(r.value);}catch(e){}
+    sc.push({name:playerName,score:totalScore});
+    sc.sort((a,b)=>b.score-a.score);sc=sc.slice(0,20);
+    await window.storage.set('meow-lb-v2',JSON.stringify(sc),true);
+  }catch(e){}
+  openLeaderboard();
+}
+
+async function openLeaderboard(){
+  showScreen('s-lb');
+  const el=document.getElementById('lbcontent');
+  el.innerHTML='<div style="color:var(--muted);font-size:14px;padding:8px 0;">Loading...</div>';
+  let sc=[];
+  try{const r=await window.storage.get('meow-lb-v2',true);if(r)sc=JSON.parse(r.value);}catch(e){}
+  if(!sc.length){el.innerHTML='<div style="color:var(--muted);font-size:14px;padding:8px 0;">No scores yet — be the first!</div>';return;}
+  const m=['🥇','🥈','🥉'];
+  el.innerHTML=sc.map((s,i)=>`<div class="lb-row"><div class="lb-rank">${m[i]||(i+1)}</div><div class="lb-name">${s.name}</div><div class="lb-score">${s.score} pts</div></div>`).join('');
+}
+</script>
+</body>
+</html>
